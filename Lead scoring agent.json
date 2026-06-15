@@ -1,0 +1,472 @@
+{
+  "name": "Lead scoring agent",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"contact_id\": \"{{ $json.contact_id }}\",\n  \"session_id\": \"{{ $json.session_id }}\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "20900f9e-f2ff-4040-b6e8-d14f8a06ef9e",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Qualification Data:\n\nBusiness Type:\n{{ $json.business_type }}\n\nChallenge:\n{{ $json.challenge }}\n\nMonthly Revenue:\n{{ $json.monthly_revenue }}\n\nGoal:\n{{ $json.goal }}\n\nBudget:\n{{ $json.budget }}",
+        "options": {
+          "systemMessage": "=## Overview\n\nYou are a Lead Scoring Agent for Sceflow AI.\n\nYour tasks:\n\n1. Analyze the qualification data.\n2. Assign a lead score from 0 to 100.\n3. Determine the lead temperature.\n4. Generate a short, friendly reply that continues the conversation naturally.\n5. Never mention lead scores, temperatures, or internal evaluations to the user.\n6. Sound human and conversational.\n\n---\n\n## Scoring Guidelines\n\n### Revenue\n\n$0 - $2k = 10 points\n\n$2k - $10k = 25 points\n\n$10k+ = 40 points\n\n### Budget\n\nNo budget = 0\n\n$500+ = 15\n\n$1000+ = 25\n\n$3000+ = 35\n\n### Business Maturity\n\n* Hobby or beginner → lower score\n* Established business → higher score\n\n### Urgency\n\nJust exploring = 5\n\nNeed help soon = 15\n\nNeed help immediately = 25\n\n### Goal\n\n* Serious growth goals → higher score\n\n---\n\n## Temperature Rules\n\n0-40 = Cold\n\n41-70 = Warm\n\n71-100 = Hot\n\n---\n\n## Reply Guidelines\n\n* Keep replies under 2 sentences.\n* Be friendly and natural.\n* Use emojis occasionally when appropriate.\n* Do not sound like a sales bot.\n* Do not mention scoring.\n* Do not mention qualification.\n* Do not mention lead temperature.\n\nIf the lead is Hot:\n\n* Encourage the conversation toward next steps naturally.\n\nIf the lead is Warm:\n\n* Continue discussing their situation and goals.\n\nIf the lead is Cold:\n\n* Provide value and keep the conversation open.\n\n---\n\n## Return JSON Only\n\n{\n\"lead_score\": 0,\n\"lead_temperature\": \"\",\n\"urgency\": \"\",\n\"reason\": \"\",\n\"reply\": \"\"\n}\n\n---\n\n## Example\n\nOutput:\n\n{\n\"lead_score\": 82,\n\"lead_temperature\": \"Hot\",\n\"urgency\": \"Need help immediately\",\n\"reason\": \"Established business with budget and strong growth goals.\",\n\"reply\": \"It sounds like you're serious about improving this 😊 What's the biggest bottleneck you're facing right now?\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "ae2cd7ba-7250-43f0-99e2-00b71c51011e",
+      "name": "Lead scoring agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "61dfbf97-f503-4e4a-a46e-43caa5608855",
+              "name": "business_type",
+              "value": "Fitness",
+              "type": "string"
+            },
+            {
+              "id": "0ae548df-7036-4475-81cd-b4ff7054acef",
+              "name": "challenge",
+              "value": "Get atleast 10 clients per month",
+              "type": "string"
+            },
+            {
+              "id": "a0a0459a-3b6a-4a8c-9790-50d01ce4dbcb",
+              "name": "monthly_revenue",
+              "value": "$1.5k",
+              "type": "string"
+            },
+            {
+              "id": "895ae0e7-da7d-4843-9357-e96f58f7c3e9",
+              "name": "goal",
+              "value": "To get more clients",
+              "type": "string"
+            },
+            {
+              "id": "581227fb-8667-4068-8ec0-fb2db5437387",
+              "name": "budget",
+              "value": "$2k",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "663ef697-52dd-4245-93af-af9611aecb50",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($input.first().json.output);\n\nconsole.log(parsed);\n\nreturn [\n  {\n    json: {\n      reply: parsed.reply || \"\",\n      \n      contact_id: $('When Executed by Another Workflow').first().json.contact_id,\n\n      lead_score: Number(parsed.lead_score || 0),\n\n      lead_temperature: parsed.lead_temperature || \"Cold\",\n\n      reason: parsed.reason || \"\",\n\n      urgency: parsed.urgency || \"Not urgent\",\n\n      raw_output: $json.output\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        0
+      ],
+      "id": "df15c764-9bfd-402f-83f2-32271c705952",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "lead_qualification",
+          "mode": "list",
+          "cachedResultName": "lead_qualification"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "qualified": true,
+            "contact_id": "={{ $json.contact_id }}",
+            "lead_temperature": "={{ $json.lead_temperature }}",
+            "lead_score": "={{ $json.lead_score }}",
+            "qualification_notes": "={{ $json.reason }}",
+            "urgency": "={{ $json.urgency }}"
+          },
+          "matchingColumns": [
+            "contact_id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "contact_id",
+              "displayName": "contact_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "business_type",
+              "displayName": "business_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "niche",
+              "displayName": "niche",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "biggest_challenge",
+              "displayName": "biggest_challenge",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "monthly_revenue",
+              "displayName": "monthly_revenue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "monthly_leads",
+              "displayName": "monthly_leads",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget",
+              "displayName": "budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgency",
+              "displayName": "urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "goal",
+              "displayName": "goal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qualification_notes",
+              "displayName": "qualification_notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_score",
+              "displayName": "lead_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qualified",
+              "displayName": "qualified",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_temperature",
+              "displayName": "lead_temperature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        736,
+        0
+      ],
+      "id": "4a2c307d-1906-439c-9480-cec08b075bb5",
+      "name": "Update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "whE6KLqx3CM9I3rq",
+          "name": "Lead qualification"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "41b916e9-ef32-4cda-8cbb-ba26b109f9d7",
+              "name": "reply",
+              "value": "={{ $('Code in JavaScript').item.json.reply }}",
+              "type": "string"
+            },
+            {
+              "id": "7ab818df-624b-4ee3-bb63-7f3fc0a69710",
+              "name": "contact_id",
+              "value": "={{ $json.contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "a26451ce-f77d-4360-8e95-269207333b2d",
+              "name": "lead_score",
+              "value": "={{ $json.lead_score }}",
+              "type": "number"
+            },
+            {
+              "id": "f13f7eb2-008f-485b-b2c5-d2107b93f2fb",
+              "name": "lead_temperature",
+              "value": "={{ $json.lead_temperature }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        0
+      ],
+      "id": "64737b1b-cbe6-4fda-b1f9-e32dc8ccd6ea",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When Executed by Another Workflow').item.json.session_id }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        160
+      ],
+      "id": "49bd14f2-294d-49ee-89ce-1a1457fdcf8f",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "whE6KLqx3CM9I3rq",
+          "name": "Lead qualification"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        160
+      ],
+      "id": "7dc1d505-f948-410a-b77f-542a8b51eec2",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "t9tmUH44mB3YIzA9",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Lead scoring agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead scoring agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Lead scoring agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Lead scoring agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "01f56fe6-0b8c-4598-b0d9-b263d862a966",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ed237ba222bdd22fb1ef66cb3d92930cfb9a9efa4227823e1079f5e4b221bbca"
+  },
+  "id": "zjyDBxeReXRHHCBl",
+  "tags": []
+}
